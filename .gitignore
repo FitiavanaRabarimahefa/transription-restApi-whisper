@@ -1,0 +1,7 @@
+/audio/
+/bin/
+/temp/
+/whisper-large-v3-turbo/
+.idea/
+__pycache__/
+command.txt
