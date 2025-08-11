@@ -2,13 +2,13 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse,FileResponse
 import shutil
 from pathlib import Path
-from sharedFunction.refact_text import nettoyer_transcription
 import torch
 import torchaudio
 import warnings
 import os
 import tempfile
 import librosa
+#from sharedFunction.refact_text import nettoyer_transcription
 
 
 from transformers import (
@@ -21,7 +21,7 @@ from transformers.utils import logging
 
 app = FastAPI()
 
-# Suppression des warnings
+
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 logging.set_verbosity_error()
@@ -32,7 +32,7 @@ device = "cuda:0" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
 
-# Configuration du backend audio avec fallback
+
 def setup_audio_backend():
     backends = ["ffmpeg", "sox_io", "soundfile"]
     for backend in backends:
@@ -54,7 +54,7 @@ def setup_audio_backend():
 
 audio_backend = setup_audio_backend()
 
-# Chargement du modèle local une seule fois au démarrage
+
 model_path = "./whisper-large-v3-turbo"
 model = AutoModelForSpeechSeq2Seq.from_pretrained(
     model_path,
@@ -81,10 +81,8 @@ pipe = pipeline(
 
 
 def load_audio_with_fallback(file_path):
-    """
-    Charge un fichier audio avec plusieurs méthodes de fallback
-    """
-    # Méthode 1: torchaudio (si backend disponible)
+
+
     if audio_backend != "librosa":
         try:
             waveform, sample_rate = torchaudio.load(file_path)
@@ -92,14 +90,14 @@ def load_audio_with_fallback(file_path):
         except Exception as e:
             print(f"Échec torchaudio : {e}")
 
-    # Méthode 2: librosa (fallback universel)
+
     try:
-        # Chargement avec librosa
+
         audio, sr = librosa.load(file_path, sr=None, mono=False)
 
-        # Conversion en format compatible avec le pipeline
+
         if audio.ndim == 1:
-            # Mono: ajouter une dimension
+
             waveform = torch.from_numpy(audio).unsqueeze(0)
         else:
             # Stéréo: transposer pour avoir la forme (channels, samples)
@@ -116,7 +114,7 @@ def load_audio_with_fallback(file_path):
 async def transcribe_audio(file: UploadFile = File(...)):
     temp_audio_path = None
     try:
-        # Validation du type de fichier
+
         allowed_extensions = {'.wav', '.mp3', '.m4a', '.flac', '.ogg', '.aac'}
         file_extension = Path(file.filename).suffix.lower()
 
@@ -127,15 +125,15 @@ async def transcribe_audio(file: UploadFile = File(...)):
                        f"Formats acceptés : {', '.join(allowed_extensions)}"
             )
 
-        # Créer un fichier temporaire avec l'extension correcte
+
         with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as tmp_file:
             temp_audio_path = Path(tmp_file.name)
 
-        # Sauvegarder le fichier uploadé
+
         with open(temp_audio_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # Lecture audio avec méthode de fallback
+
         try:
             waveform, sample_rate, method_used = load_audio_with_fallback(temp_audio_path)
             print(f"Audio chargé avec {method_used} - SR: {sample_rate}, Shape: {waveform.shape}")
@@ -145,11 +143,11 @@ async def transcribe_audio(file: UploadFile = File(...)):
                 detail=f"Impossible de lire l'audio : {audio_error}"
             )
 
-        # Conversion en mono si nécessaire
+
         if waveform.shape[0] > 1:
             waveform = torch.mean(waveform, dim=0, keepdim=True)
 
-        # Resampling vers 16kHz si nécessaire
+
         if sample_rate != 16000:
             if audio_backend != "librosa":
                 try:
@@ -159,17 +157,17 @@ async def transcribe_audio(file: UploadFile = File(...)):
                     )
                     waveform = resampler(waveform)
                 except:
-                    # Fallback avec librosa pour le resampling
+
                     audio_np = waveform.squeeze().numpy()
                     audio_resampled = librosa.resample(audio_np, orig_sr=sample_rate, target_sr=16000)
                     waveform = torch.from_numpy(audio_resampled).unsqueeze(0)
             else:
-                # Utiliser librosa pour le resampling
+
                 audio_np = waveform.squeeze().numpy()
                 audio_resampled = librosa.resample(audio_np, orig_sr=sample_rate, target_sr=16000)
                 waveform = torch.from_numpy(audio_resampled).unsqueeze(0)
 
-        # Transcription
+
         audio_input = waveform.squeeze().numpy()
         result = pipe(audio_input, return_timestamps=True)
 
@@ -190,7 +188,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
             content={"detail": f"Erreur serveur : {str(e)}"}
         )
     finally:
-        # Nettoyage du fichier temporaire
+
         if temp_audio_path and temp_audio_path.exists():
             temp_audio_path.unlink(missing_ok=True)
 
