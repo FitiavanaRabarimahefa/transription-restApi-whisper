@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException,Depends
 from fastapi.responses import JSONResponse,FileResponse
 import shutil
 from pathlib import Path
@@ -8,6 +8,9 @@ import warnings
 import os
 import tempfile
 import librosa
+from sqlalchemy.orm import Session
+from load_audio import save_audio_file
+from db.session import get_db
 #from sharedFunction.refact_text import nettoyer_transcription
 
 
@@ -115,7 +118,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
     temp_audio_path = None
     try:
 
-        allowed_extensions = {'.wav', '.mp3', '.m4a', '.flac', '.ogg', '.aac'}
+        allowed_extensions = {'.wav', '.mp3', '.m4a', '.flac', '.ogg', '.aac','.webm'}
         file_extension = Path(file.filename).suffix.lower()
 
         if file_extension not in allowed_extensions:
@@ -201,6 +204,17 @@ async def health_check():
         "device": device,
         "torch_dtype": str(torch_dtype)
     }
+
+
+@app.get("/greeting")
+async def hello():
+    return "hello world"
+
+
+@app.post("/upload-audio/")
+async def upload_audio(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    audio = save_audio_file(file, db)
+    return {"id": audio.id, "filename": audio.filename, "filepath": audio.filepath}
 
 
 
