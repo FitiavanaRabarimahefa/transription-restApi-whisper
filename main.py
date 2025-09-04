@@ -11,6 +11,7 @@ import librosa
 from sqlalchemy.orm import Session
 from load_audio import save_audio_file
 from db.session import get_db
+from fastapi.staticfiles import StaticFiles
 #from sharedFunction.refact_text import nettoyer_transcription
 
 
@@ -23,6 +24,7 @@ from transformers import (
 from transformers.utils import logging
 
 app = FastAPI()
+app.mount("/audio",StaticFiles(directory="audio"),name="audio")
 
 
 warnings.filterwarnings("ignore", category=UserWarning)
