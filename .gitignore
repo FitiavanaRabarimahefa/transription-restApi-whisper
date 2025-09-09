@@ -2,6 +2,7 @@
 /bin/
 /temp/
 /whisper-large-v3-turbo/
+/speech-emotion-recognition-whisper-v3/
 .idea/
 __pycache__/
 command.txt

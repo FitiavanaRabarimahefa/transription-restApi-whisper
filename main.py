@@ -9,9 +9,12 @@ import os
 import tempfile
 import librosa
 from sqlalchemy.orm import Session
-from load_audio import save_audio_file
+from load_audio import save_audio_file,get_audio_file_by_id,get_audio_files
 from db.session import get_db
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from authGmail import TokenPayload,google_auth
+from speech_emotion import analyze_audio
 #from sharedFunction.refact_text import nettoyer_transcription
 
 
@@ -25,6 +28,13 @@ from transformers.utils import logging
 
 app = FastAPI()
 app.mount("/audio",StaticFiles(directory="audio"),name="audio")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -219,6 +229,31 @@ async def upload_audio(file: UploadFile = File(...), db: Session = Depends(get_d
     return {"id": audio.id, "filename": audio.filename, "filepath": audio.filepath}
 
 
+@app.get("/audios")
+def list_audios(db: Session = Depends(get_db)):
+    return get_audio_files(db)
+
+
+
+@app.get("/audios/{audio_id}")
+def get_audio(audio_id: int, db: Session = Depends(get_db)):
+    return get_audio_file_by_id(audio_id, db)
+
+
+@app.post("/predict-emotion")
+async def predict_emotion(file: UploadFile = File(...)):
+    try:
+
+        results = analyze_audio(await file.read())
+        return JSONResponse(content={"filename": file.filename, "results": results})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'analyse audio : {str(e)}")
+
+
+
+@app.post("/auth/google")
+async def google_auth_endpoint(payload: TokenPayload):
+    return google_auth(payload)
 
 if __name__ == "__main__":
     import uvicorn
