@@ -15,6 +15,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from authGmail import TokenPayload,google_auth
 from speech_emotion import analyze_audio
+from db.schema import MeetingCreate
+from meeting import create_meeting
 #from sharedFunction.refact_text import nettoyer_transcription
 
 
@@ -255,7 +257,28 @@ async def predict_emotion(file: UploadFile = File(...)):
 async def google_auth_endpoint(payload: TokenPayload):
     return google_auth(payload)
 
+
+
+@app.post("/meetings")
+async def add_meeting(meeting: MeetingCreate, db: Session = Depends(get_db)):
+    new_meeting = create_meeting(
+        db=db,
+        title=meeting.title,
+        date_meeting=meeting.date_meeting,
+        hour=meeting.hour,
+        platform=meeting.platform,
+        email=meeting.email
+    )
+    return {
+        "id": new_meeting.id,
+        "title": new_meeting.title,
+        "date_meeting": str(new_meeting.date_meeting),
+        "hour": str(new_meeting.hour),
+        "platform": new_meeting.platform,
+        "email": new_meeting.email
+    }
+
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8008)

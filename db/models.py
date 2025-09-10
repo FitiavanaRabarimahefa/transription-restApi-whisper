@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, func
+from sqlalchemy import Column, Integer, String, DateTime, func, Date,Time
 from db.database import Base
 
 class User(Base):
@@ -15,4 +15,15 @@ class Audio(Base):
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String, nullable=False)
     filepath = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Meeting(Base):
+    __tablename__="meeting"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    date_meeting= Column(Date,nullable=False)
+    hour = Column(Time, nullable=False)
+    platform = Column(String,nullable=False)
+    email=Column(String,nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

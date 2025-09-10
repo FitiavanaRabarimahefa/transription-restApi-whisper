@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from db.database import SessionLocal  # ta fabrique de session dans database.py
+from db.database import SessionLocal
 
 def get_db():
     """
