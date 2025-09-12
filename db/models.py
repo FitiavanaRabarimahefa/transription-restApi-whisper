@@ -27,3 +27,12 @@ class Meeting(Base):
     platform = Column(String,nullable=False)
     email=Column(String,nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+
+class Resume(Base):
+    __tablename__="resume"
+    id = Column(Integer, primary_key=True, index=True)
+    email_candidate = Column(String, nullable=False)
+    resume_link = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

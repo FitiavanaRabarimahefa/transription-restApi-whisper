@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,EmailStr
 from datetime import date, time
 
 class MeetingCreate(BaseModel):
@@ -7,3 +7,8 @@ class MeetingCreate(BaseModel):
     hour: time
     platform: str
     email: str
+
+
+class ResumeCreate(BaseModel):
+    email_candidate: str
+    resume_link: str

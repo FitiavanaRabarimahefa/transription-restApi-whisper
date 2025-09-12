@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException,Depends
+from fastapi import FastAPI, UploadFile, File,Form,HTTPException,Depends
 from fastapi.responses import JSONResponse,FileResponse
 import shutil
 from pathlib import Path
@@ -15,8 +15,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from authGmail import TokenPayload,google_auth
 from speech_emotion import analyze_audio
-from db.schema import MeetingCreate
-from meeting import create_meeting
+from db.schema import MeetingCreate,ResumeCreate
+from meeting import create_meeting,get_meetings,delete_meeting
+from resume import create_resume
 #from sharedFunction.refact_text import nettoyer_transcription
 
 
@@ -277,6 +278,32 @@ async def add_meeting(meeting: MeetingCreate, db: Session = Depends(get_db)):
         "platform": new_meeting.platform,
         "email": new_meeting.email
     }
+
+
+@app.get("/all-meetings")
+def read_meetings(db: Session = Depends(get_db)):
+    meetings = get_meetings(db)
+    return [
+        {
+            "id": m.id,
+            "title": m.title,
+            "date_meeting": str(m.date_meeting),
+            "hour": str(m.hour),
+            "platform": m.platform,
+            "email": m.email
+        }
+        for m in meetings
+    ]
+
+
+@app.delete("/delete-meetings/{meeting_id}")
+def remove_meeting(meeting_id: int, db: Session = Depends(get_db)):
+    return delete_meeting(db, meeting_id)
+
+
+@app.post("/add-resumes")
+async def add_resume(email: str = Form(...),file: UploadFile = File(...),db: Session = Depends(get_db)):
+    return create_resume(db, email, file)
 
 if __name__ == "__main__":
     import uvicorn
